@@ -7675,7 +7675,11 @@ export class Station extends TypedEmitter<StationEvents> {
               camera_type: 0,
               encryptkey: rsa_key?.exportKey("components-public").n.subarray(1).toString("hex"),
               entrytype: 0,
-              streamtype: videoCodec,
+              streamtype: device.getSerial().startsWith("T8170")
+                ? videoCodec === VideoCodec.H264
+                  ? 1
+                  : 2
+                : videoCodec,
             },
           }),
           channel: device.getChannel(),
