@@ -22,6 +22,7 @@
     "watch": "npm run watch:ts",
     "lint": "eslint --ext .ts src",
     "prepublishOnly": "tsc -p tsconfig.build.json && npm run copy-proto-build",
+    "prepare": "npm run build",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\""
   },
