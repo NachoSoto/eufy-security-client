@@ -2156,26 +2156,34 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
   }
 
-  private isIFrame(data: Buffer, isKeyFrame: boolean): boolean {
-    if (
-      this.rawStation.station_sn.startsWith("T8410") ||
-      this.rawStation.station_sn.startsWith("T8400") ||
-      this.rawStation.station_sn.startsWith("T8401") ||
-      this.rawStation.station_sn.startsWith("T8411") ||
-      this.rawStation.station_sn.startsWith("T8202") ||
-      this.rawStation.station_sn.startsWith("T8422") ||
-      this.rawStation.station_sn.startsWith("T8424") ||
-      this.rawStation.station_sn.startsWith("T8423") ||
-      this.rawStation.station_sn.startsWith("T8130") ||
-      this.rawStation.station_sn.startsWith("T8131") ||
-      this.rawStation.station_sn.startsWith("T8420") ||
-      this.rawStation.station_sn.startsWith("T8440") ||
-      this.rawStation.station_sn.startsWith("T8171") ||
-      this.rawStation.station_sn.startsWith("T8426") ||
-      this.rawStation.station_sn.startsWith("T8441") ||
-      this.rawStation.station_sn.startsWith("T8442") ||
-      checkT8420(this.rawStation.station_sn)
-    ) {
+  private usesPacketStreamMetadata(channel?: number): boolean {
+    const serialNumbers = [this.rawStation.station_sn, channel !== undefined ? this.deviceSNs[channel]?.sn : undefined];
+    return serialNumbers.some(
+      (serialNumber) =>
+        serialNumber !== undefined &&
+        (serialNumber.startsWith("T8410") ||
+          serialNumber.startsWith("T8400") ||
+          serialNumber.startsWith("T8401") ||
+          serialNumber.startsWith("T8411") ||
+          serialNumber.startsWith("T8202") ||
+          serialNumber.startsWith("T8422") ||
+          serialNumber.startsWith("T8424") ||
+          serialNumber.startsWith("T8423") ||
+          serialNumber.startsWith("T8130") ||
+          serialNumber.startsWith("T8131") ||
+          serialNumber.startsWith("T8420") ||
+          serialNumber.startsWith("T8440") ||
+          serialNumber.startsWith("T8170") ||
+          serialNumber.startsWith("T8171") ||
+          serialNumber.startsWith("T8426") ||
+          serialNumber.startsWith("T8441") ||
+          serialNumber.startsWith("T8442") ||
+          checkT8420(serialNumber))
+    );
+  }
+
+  private isIFrame(data: Buffer, isKeyFrame: boolean, channel?: number): boolean {
+    if (this.usesPacketStreamMetadata(channel)) {
       //TODO: Need to add battery doorbells as seen in source => T8210,T8220,T8221,T8222
       return isKeyFrame;
     }
@@ -2296,25 +2304,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
           this.currentMessageState[message.dataType].p2pStreamMetadata.videoWidth = videoMetaData.videoWidth;
 
           if (!this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived) {
-            if (
-              this.rawStation.station_sn.startsWith("T8410") ||
-              this.rawStation.station_sn.startsWith("T8400") ||
-              this.rawStation.station_sn.startsWith("T8401") ||
-              this.rawStation.station_sn.startsWith("T8411") ||
-              this.rawStation.station_sn.startsWith("T8202") ||
-              this.rawStation.station_sn.startsWith("T8422") ||
-              this.rawStation.station_sn.startsWith("T8424") ||
-              this.rawStation.station_sn.startsWith("T8423") ||
-              this.rawStation.station_sn.startsWith("T8130") ||
-              this.rawStation.station_sn.startsWith("T8131") ||
-              this.rawStation.station_sn.startsWith("T8420") ||
-              this.rawStation.station_sn.startsWith("T8440") ||
-              this.rawStation.station_sn.startsWith("T8171") ||
-              this.rawStation.station_sn.startsWith("T8426") ||
-              this.rawStation.station_sn.startsWith("T8441") ||
-              this.rawStation.station_sn.startsWith("T8442") ||
-              checkT8420(this.rawStation.station_sn)
-            ) {
+            if (this.usesPacketStreamMetadata(message.channel)) {
               this.currentMessageState[message.dataType].p2pStreamMetadata.videoCodec =
                 videoMetaData.streamType === 1
                   ? VideoCodec.H264
@@ -2331,7 +2321,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                   metadata: videoMetaData,
                 }
               );
-            } else if (this.isIFrame(video_data, isKeyFrame)) {
+            } else if (this.isIFrame(video_data, isKeyFrame, message.channel)) {
               this.currentMessageState[message.dataType].p2pStreamMetadata.videoCodec = getVideoCodec(video_data);
               rootP2PLogger.trace(
                 `Handle DATA ${P2PDataType[message.dataType]} - CMD_VIDEO_FRAME - Video codec extracted from video data`,
@@ -2421,7 +2411,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 preFrameVideoDataLength: this.currentMessageState[message.dataType].preFrameVideoData.length,
               });
               if (!this.currentMessageState[message.dataType].receivedFirstIFrame)
-                this.currentMessageState[message.dataType].receivedFirstIFrame = this.isIFrame(video_data, isKeyFrame);
+                this.currentMessageState[message.dataType].receivedFirstIFrame = this.isIFrame(
+                  video_data,
+                  isKeyFrame,
+                  message.channel
+                );
 
               if (this.currentMessageState[message.dataType].receivedFirstIFrame) {
                 if (this.currentMessageState[message.dataType].preFrameVideoData.length > this.MAX_VIDEO_PACKET_BYTES)
