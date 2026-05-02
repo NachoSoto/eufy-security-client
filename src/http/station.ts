@@ -7612,7 +7612,14 @@ export class Station extends TypedEmitter<StationEvents> {
         },
       });
     }
-    if (this.isLiveStreaming(device)) {
+    if (this.isLiveStreaming(device) && device.getSerial().startsWith("T8170")) {
+      rootHTTPLogger.warn(`Station start livestream - resetting stale local livestream state`, {
+        stationSN: this.getSerial(),
+        deviceSN: device.getSerial(),
+        videoCodec: videoCodec,
+      });
+      this.p2pSession.resetLivestream(device.getChannel());
+    } else if (this.isLiveStreaming(device)) {
       throw new LivestreamAlreadyRunningError("Livestream for device is already running", {
         context: {
           device: device.getSerial(),
@@ -7915,6 +7922,13 @@ export class Station extends TypedEmitter<StationEvents> {
           commandValue: commandData.value,
         },
       });
+    }
+    if (!this.isLiveStreaming(device) && device.getSerial().startsWith("T8170")) {
+      rootHTTPLogger.warn(`Station stop livestream - ignoring stale stopped livestream state`, {
+        stationSN: this.getSerial(),
+        deviceSN: device.getSerial(),
+      });
+      return;
     }
     if (!this.isLiveStreaming(device)) {
       throw new LivestreamNotRunningError("Livestream for device is not running", {

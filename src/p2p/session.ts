@@ -4334,6 +4334,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     return this.isStreaming(channel, P2PDataType.VIDEO);
   }
 
+  public resetLivestream(channel: number): void {
+    if (this.isLiveStreaming(channel)) {
+      this.endStream(P2PDataType.VIDEO);
+    }
+  }
+
   private isCurrentlyStreaming(): boolean {
     for (const element of Object.values(this.currentMessageState)) {
       if (element.p2pStreaming || element.p2pTalkback) return true;
