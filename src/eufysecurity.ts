@@ -1236,7 +1236,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       });
 
     const camera = device as Camera;
-    if (!station.isLiveStreaming(camera)) {
+    if (!station.isLiveStreaming(camera) || deviceSN.startsWith("T8170")) {
       station.startLivestream(camera);
 
       if (this.cameraMaxLivestreamSeconds > 0) {
@@ -1266,7 +1266,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         context: { device: deviceSN, commandName: CommandName.DeviceStopLivestream },
       });
 
-    if (station.isConnected() && station.isLiveStreaming(device)) {
+    if (station.isConnected() && (station.isLiveStreaming(device) || deviceSN.startsWith("T8170"))) {
       station.stopLivestream(device);
     } else {
       rootMainLogger.warn(
