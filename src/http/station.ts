@@ -15323,7 +15323,9 @@ export class Station extends TypedEmitter<StationEvents> {
     endDate: Date,
     eventType: FilterEventType = 0,
     detectionType: FilterDetectType = 0,
-    storageType: FilterStorageType = 0
+    storageType: FilterStorageType = 0,
+    startTime?: string,
+    count: number = 20
   ): void {
     const commandData: CommandData = {
       name: CommandName.StationDatabaseQueryLocal,
@@ -15363,7 +15365,7 @@ export class Station extends TypedEmitter<StationEvents> {
           payload: {
             cmd: CommandType.CMD_DATABASE_QUERY_LOCAL,
             payload: {
-              count: 20,
+              count: count,
               detection_type: detectionType,
               device_info: devices,
               end_date: format(endDate, "YYYYMMDD"),
@@ -15371,7 +15373,7 @@ export class Station extends TypedEmitter<StationEvents> {
               flag: 0,
               res_unzip: 1,
               start_date: format(startDate, "YYYYMMDD"),
-              start_time: `${format(startDate, "YYYYMMDD")}000000`,
+              start_time: startTime ?? `${format(startDate, "YYYYMMDD")}000000`,
               storage_cloud:
                 storageType === FilterStorageType.NONE ||
                 (storageType !== FilterStorageType.LOCAL && storageType !== FilterStorageType.CLOUD)
@@ -15397,7 +15399,9 @@ export class Station extends TypedEmitter<StationEvents> {
     endDate: Date,
     eventType: FilterEventType = 0,
     detectionType: FilterDetectType = 0,
-    storageType: FilterStorageType = 0
+    storageType: FilterStorageType = 0,
+    startTime?: string,
+    count: number = 100
   ): void {
     const commandData: CommandData = {
       name: CommandName.StationDatabaseQueryByDate,
@@ -15441,7 +15445,7 @@ export class Station extends TypedEmitter<StationEvents> {
           payload: {
             cmd: CommandType.CMD_DATABASE_QUERY_BY_DATE,
             payload: {
-              count: 100,
+              count: count,
               detection_type: detectionType,
               device_info: devices,
               end_date: endDateStr,
@@ -15449,7 +15453,7 @@ export class Station extends TypedEmitter<StationEvents> {
               flag: 0,
               res_unzip: 1,
               start_date: startDateStr,
-              start_time: `${startDateStr}000000`,
+              start_time: startTime ?? `${startDateStr}000000`,
               storage_cloud:
                 storageType === FilterStorageType.NONE ||
                 (storageType !== FilterStorageType.LOCAL && storageType !== FilterStorageType.CLOUD)
