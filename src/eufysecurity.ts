@@ -2304,7 +2304,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     videoStream: Readable,
     audioStream: Readable
   ): void {
-    this.getStationDevice(station.getSerial(), channel)
+    const overrideSerial = station.getDownloadDeviceSerialOverride(channel);
+    const devicePromise =
+      overrideSerial !== undefined ? this.getDevice(overrideSerial) : this.getStationDevice(station.getSerial(), channel);
+    devicePromise
       .then((device: Device) => {
         this.emit("station download start", station, device, metadata, videoStream, audioStream);
       })
@@ -2320,9 +2323,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
   }
 
   private onStationFinishDownload(station: Station, channel: number): void {
-    this.getStationDevice(station.getSerial(), channel)
+    const overrideSerial = station.getDownloadDeviceSerialOverride(channel);
+    const devicePromise =
+      overrideSerial !== undefined ? this.getDevice(overrideSerial) : this.getStationDevice(station.getSerial(), channel);
+    devicePromise
       .then((device: Device) => {
         this.emit("station download finish", station, device);
+        station.clearDownloadDeviceSerialOverride(channel);
       })
       .catch((err) => {
         const error = ensureError(err);
@@ -2349,7 +2356,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
           });
         }
       }
-      this.getStationDevice(station.getSerial(), result.channel)
+      const overrideSerial = station.getDownloadDeviceSerialOverride(result.channel);
+      const devicePromise =
+        overrideSerial !== undefined ? this.getDevice(overrideSerial) : this.getStationDevice(station.getSerial(), result.channel);
+      devicePromise
         .then((device: Device) => {
           if (
             (result.customData !== undefined &&

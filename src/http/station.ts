@@ -190,6 +190,7 @@ export class Station extends TypedEmitter<StationEvents> {
   private terminating = false;
 
   private p2pConnectionType = P2PConnectionType.QUICKEST;
+  private downloadDeviceSerialOverrides = new Map<number, string>();
 
   public static readonly CHANNEL: number = 255;
   public static readonly CHANNEL_INDOOR: number = 1000;
@@ -1027,6 +1028,14 @@ export class Station extends TypedEmitter<StationEvents> {
     audioStream: Readable
   ): void {
     this.emit("download start", this, channel, metadata, videoStream, audioStream);
+  }
+
+  public getDownloadDeviceSerialOverride(channel: number): string | undefined {
+    return this.downloadDeviceSerialOverrides.get(channel);
+  }
+
+  public clearDownloadDeviceSerialOverride(channel: number): void {
+    this.downloadDeviceSerialOverrides.delete(channel);
   }
 
   private onStopLivestream(channel: number): void {
@@ -7437,13 +7446,16 @@ export class Station extends TypedEmitter<StationEvents> {
     device: Device,
     path: string,
     cipher_id?: number,
-    allowRecordingStationOverride = false
+    allowRecordingStationOverride = false,
+    channel?: number
   ): Promise<void> {
+    const downloadChannel = channel ?? device.getChannel();
     const commandData: CommandData = {
       name: CommandName.DeviceStartDownload,
       value: {
         path: path,
         cipher_id: cipher_id,
+        channel: downloadChannel,
       },
     };
     if (device.getStationSerial() !== this.getSerial() && !allowRecordingStationOverride) {
@@ -7473,7 +7485,11 @@ export class Station extends TypedEmitter<StationEvents> {
       path: path,
       cipherID: cipher_id,
       recordingStationOverride: allowRecordingStationOverride,
+      channel: downloadChannel,
     });
+    if (allowRecordingStationOverride) {
+      this.downloadDeviceSerialOverrides.set(downloadChannel, device.getSerial());
+    }
     if (this.getDeviceType() === DeviceType.HB3) {
       //TODO: Implement HB3 Support! Actually doesn't work and returns return_code -104 (ERROR_INVALID_ACCOUNT). It could be that we need the new encrypted p2p protocol to make this work...
       const rsa_key = this.p2pSession.getDownloadRSAPrivateKey();
@@ -7483,14 +7499,14 @@ export class Station extends TypedEmitter<StationEvents> {
           value: JSON.stringify({
             account_id: this.rawStation.member.admin_user_id,
             cmd: CommandType.CMD_DOWNLOAD_VIDEO,
-            mChannel: device.getChannel(),
+            mChannel: downloadChannel,
             mValue3: CommandType.CMD_DOWNLOAD_VIDEO,
             payload: {
               filepath: path,
               key: rsa_key?.exportKey("components-public").n.subarray(1).toString("hex").toUpperCase(),
             },
           }),
-          channel: device.getChannel(),
+          channel: downloadChannel,
         },
         {
           command: commandData,
@@ -7508,7 +7524,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOWNLOAD_VIDEO,
             strValue: path,
             strValueSub: this.rawStation.member.admin_user_id,
-            channel: device.getChannel(),
+            channel: downloadChannel,
           },
           {
             command: commandData,
@@ -7519,7 +7535,7 @@ export class Station extends TypedEmitter<StationEvents> {
           `Cancelled download of video "${path}" from Station ${this.getSerial()}, because RSA certificate couldn't be loaded`
         );
         this.emit("command result", this, {
-          channel: device.getChannel(),
+          channel: downloadChannel,
           command_type: CommandType.CMD_DOWNLOAD_VIDEO,
           return_code: ErrorCode.ERROR_INVALID_PARAM,
           customData: {
@@ -7533,7 +7549,7 @@ export class Station extends TypedEmitter<StationEvents> {
           commandType: CommandType.CMD_DOWNLOAD_VIDEO,
           strValue: path,
           strValueSub: this.rawStation.member.admin_user_id,
-          channel: device.getChannel(),
+          channel: downloadChannel,
         },
         {
           command: commandData,
@@ -7553,11 +7569,12 @@ export class Station extends TypedEmitter<StationEvents> {
         }*/
   }
 
-  public cancelDownload(device: Device): void {
+  public cancelDownload(device: Device, channel?: number): void {
+    const downloadChannel = channel ?? device.getChannel();
     const commandData: CommandData = {
       name: CommandName.DeviceCancelDownload,
     };
-    if (device.getStationSerial() !== this.getSerial()) {
+    if (device.getStationSerial() !== this.getSerial() && channel === undefined) {
       throw new WrongStationError("Device is not managed by this station", {
         context: {
           device: device.getSerial(),
@@ -7580,13 +7597,14 @@ export class Station extends TypedEmitter<StationEvents> {
     rootHTTPLogger.debug(`Station cancel download - sending command`, {
       stationSN: this.getSerial(),
       deviceSN: device.getSerial(),
+      channel: downloadChannel,
     });
     this.p2pSession.sendCommandWithInt(
       {
         commandType: CommandType.CMD_DOWNLOAD_CANCEL,
-        value: device.getChannel(),
+        value: downloadChannel,
         strValueSub: this.rawStation.member.admin_user_id,
-        channel: device.getChannel(),
+        channel: downloadChannel,
       },
       {
         command: commandData,
@@ -7968,9 +7986,9 @@ export class Station extends TypedEmitter<StationEvents> {
     return this.p2pSession.isLiveStreaming(device.getChannel());
   }
 
-  public isDownloading(device: Device): boolean {
-    if (device.getStationSerial() !== this.getSerial()) return false;
-    return this.p2pSession.isDownloading(device.getChannel());
+  public isDownloading(device: Device, channel?: number): boolean {
+    if (device.getStationSerial() !== this.getSerial() && channel === undefined) return false;
+    return this.p2pSession.isDownloading(channel ?? device.getChannel());
   }
 
   public quickResponse(device: Device, voice_id: number): void {
