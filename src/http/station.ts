@@ -7433,7 +7433,12 @@ export class Station extends TypedEmitter<StationEvents> {
     }
   }
 
-  public async startDownload(device: Device, path: string, cipher_id?: number): Promise<void> {
+  public async startDownload(
+    device: Device,
+    path: string,
+    cipher_id?: number,
+    allowRecordingStationOverride = false
+  ): Promise<void> {
     const commandData: CommandData = {
       name: CommandName.DeviceStartDownload,
       value: {
@@ -7441,7 +7446,7 @@ export class Station extends TypedEmitter<StationEvents> {
         cipher_id: cipher_id,
       },
     };
-    if (device.getStationSerial() !== this.getSerial()) {
+    if (device.getStationSerial() !== this.getSerial() && !allowRecordingStationOverride) {
       throw new WrongStationError("Device is not managed by this station", {
         context: {
           device: device.getSerial(),
@@ -7463,9 +7468,11 @@ export class Station extends TypedEmitter<StationEvents> {
     }
     rootHTTPLogger.debug(`Station start download - sending command`, {
       stationSN: this.getSerial(),
+      deviceStationSN: device.getStationSerial(),
       deviceSN: device.getSerial(),
       path: path,
       cipherID: cipher_id,
+      recordingStationOverride: allowRecordingStationOverride,
     });
     if (this.getDeviceType() === DeviceType.HB3) {
       //TODO: Implement HB3 Support! Actually doesn't work and returns return_code -104 (ERROR_INVALID_ACCOUNT). It could be that we need the new encrypted p2p protocol to make this work...
