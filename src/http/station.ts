@@ -2515,7 +2515,9 @@ export class Station extends TypedEmitter<StationEvents> {
           {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
-              commandType: CommandType.CMD_INDOOR_ROTATE,
+              commandType: device.isOutdoorPanAndTiltCamera()
+                ? CommandType.CMD_OUTDOOR_ROTATE
+                : CommandType.CMD_INDOOR_ROTATE,
               data: {
                 cmd_type: command,
                 rotate_type: direction,
