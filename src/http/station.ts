@@ -2510,6 +2510,27 @@ export class Station extends TypedEmitter<StationEvents> {
             command: commandData,
           }
         );
+      } else if (device.isOutdoorPanAndTiltCamera() && this.isDeviceControlledByHomeBase()) {
+        this.p2pSession.sendCommandWithStringPayload(
+          {
+            commandType: CommandType.CMD_SET_PAYLOAD,
+            value: JSON.stringify({
+              account_id: this.rawStation.member.admin_user_id,
+              cmd: CommandType.CMD_OUTDOOR_ROTATE,
+              mChannel: device.getChannel(),
+              mValue3: 0,
+              payload: {
+                cmd_type: command,
+                rotate_type: direction,
+                zoom,
+              },
+            }),
+            channel: device.getChannel(),
+          },
+          {
+            command: commandData,
+          }
+        );
       } else {
         this.p2pSession.sendCommandWithStringPayload(
           {
