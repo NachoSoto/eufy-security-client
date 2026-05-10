@@ -2426,7 +2426,7 @@ export class Station extends TypedEmitter<StationEvents> {
     );
   }
 
-  public panAndTilt(device: Device, direction: PanTiltDirection, command = 1): void {
+  public panAndTilt(device: Device, direction: PanTiltDirection, command = 1, zoom = 1.0): void {
     const commandData: CommandData = {
       name: CommandName.DevicePanAndTilt,
       value: direction,
@@ -2467,6 +2467,7 @@ export class Station extends TypedEmitter<StationEvents> {
       deviceSN: device.getSerial(),
       direction: PanTiltDirection[direction],
       command,
+      zoom,
     });
     if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
       this.p2pSession.sendCommandWithStringPayload(
@@ -2518,7 +2519,7 @@ export class Station extends TypedEmitter<StationEvents> {
               data: {
                 cmd_type: command,
                 rotate_type: direction,
-                zoom: 1.0,
+                zoom,
               },
             }),
             channel: device.getChannel(),
